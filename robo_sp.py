@@ -19,6 +19,19 @@ from selenium.webdriver.common.print_page_options import PrintOptions
 from selenium.common.exceptions import NoSuchElementException
 
 
+def esperar_download_pdf(pasta, timeout=30):
+    tempo_inicial = time.time()
+    while time.time() - tempo_inicial < timeout:
+        arquivos = os.listdir(pasta)
+        for arquivo in arquivos:
+            if arquivo.endswith(".pdf"):
+                caminho_completo = os.path.join(pasta, arquivo)
+                if not arquivo.endswith(".crdownload") and os.path.exists(caminho_completo):
+                    return caminho_completo
+        time.sleep(1)
+    return None
+
+
 load_dotenv()
 client = acessando_sheets()
 SHEET_LEVANTAMENTO_DEBITO = os.getenv('SHEET_LEVANTAMENTO_DEBITO')
@@ -179,15 +192,13 @@ for i, (cnpj, resp, nome) in enumerate(zip(coluna_cnpj, coluna_responsavel, colu
             time.sleep(1)
             pyautogui.press('enter')
 
-            time.sleep(1)
-
-            estadual.update_cell(i, 5, 'Com débitos')
-
-            if os.path.exists(caminho_arquivo):
+            caminho_arquivo = esperar_download_pdf(pasta)
+            if caminho_arquivo:
                 pasta_id = salvar_drive(caminho_arquivo, resp, nome_arquivo)
                 responsaveis_com_pasta.add((resp, pasta_id))
                 time.sleep(5)
                 os.remove(caminho_arquivo)
+                estadual.update_cell(i, 5, 'Com débitos')
             else:
                 print("Arquivo não encontrado!")
                 estadual.update_cell(i, 5, 'Arquivo não encontrado, erro!')
