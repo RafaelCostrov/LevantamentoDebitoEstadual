@@ -1,3 +1,6 @@
 *.json
 .env
 *.html
+venv-robo-sp/
+_pycache_/
+*.pyc
