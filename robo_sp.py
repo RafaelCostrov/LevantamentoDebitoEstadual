@@ -19,12 +19,12 @@ from selenium.webdriver.common.print_page_options import PrintOptions
 from selenium.common.exceptions import NoSuchElementException
 
 
-def esperar_download_pdf(pasta, timeout=30):
+def esperar_download_pdf(pasta, cnpj, timeout=30):
     tempo_inicial = time.time()
     while time.time() - tempo_inicial < timeout:
         arquivos = os.listdir(pasta)
         for arquivo in arquivos:
-            if arquivo.endswith(".pdf"):
+            if arquivo.endswith(".pdf") and cnpj in arquivo:
                 caminho_completo = os.path.join(pasta, arquivo)
                 if not arquivo.endswith(".crdownload") and os.path.exists(caminho_completo):
                     return caminho_completo
@@ -167,6 +167,16 @@ for i, (cnpj, resp, nome) in enumerate(zip(coluna_cnpj, coluna_responsavel, colu
                                              '//*[@id="MainContent_btnConsultar"]')
     botao_consultar.click()
     time.sleep(1)
+    WebDriverWait(navegador, 15).until(
+        EC.any_of(
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="MainContent_lblMensagemDeErro"]')),
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="MainContent_lblMsgErroResultado"]')),
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="MainContent_lkbImpressao"]'))
+        )
+    )
 
     try:
         mensagem_erro = navegador.find_element(
@@ -175,6 +185,7 @@ for i, (cnpj, resp, nome) in enumerate(zip(coluna_cnpj, coluna_responsavel, colu
             estadual.update_cell(i, 5, 'Sem procuração')
         else:
             estadual.update_cell(i, 5, mensagem_erro.text)
+
     except NoSuchElementException:
         status_texto = navegador.find_element(By.XPATH,
                                               '//*[@id="MainContent_lblMsgErroResultado"]')
@@ -185,19 +196,19 @@ for i, (cnpj, resp, nome) in enumerate(zip(coluna_cnpj, coluna_responsavel, colu
                 By.XPATH, '//*[@id="MainContent_lkbImpressao"]')
             botao_impressao.click()
 
-            time.sleep(1)
+            time.sleep(2)
             pyautogui.press('delete')
-            time.sleep(1)
+            time.sleep(2)
             pyautogui.write(caminho_arquivo)
-            time.sleep(1)
+            time.sleep(2)
             pyautogui.press('enter')
 
-            caminho_arquivo = esperar_download_pdf(pasta)
+            caminho_arquivo = esperar_download_pdf(pasta, cnpj)
             if caminho_arquivo:
                 pasta_id = salvar_drive(caminho_arquivo, resp, nome_arquivo)
                 responsaveis_com_pasta.add((resp, pasta_id))
                 time.sleep(5)
-                os.remove(caminho_arquivo)
+                # os.remove(caminho_arquivo)
                 estadual.update_cell(i, 5, 'Com débitos')
             else:
                 print("Arquivo não encontrado!")
